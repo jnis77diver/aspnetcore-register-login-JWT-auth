@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace WebApi
 {
@@ -27,8 +28,22 @@ namespace WebApi
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddCors();
-            services.AddDbContext<DataContext>(x => x.UseInMemoryDatabase("TestDb"));
+            services.AddDbContext<DataContext>(options => options.UseSqlServer(Configuration["ConnectionStrings:Tekeys"]));
+            //services.AddDbContext<DataContext>(x => x.UseInMemoryDatabase("TestDb"));
+
+            // TODO: if we go the route of storing the JWT in a cookie (since OWASP says not to use localStorage for tokens), then we'll want to implement this
+            //services.AddAntiforgery(options => {
+            //    options.HeaderName = "X-XSRF-TOKEN";
+            //    options.Cookie.SameSite = SameSiteMode.None;
+            //    //options.Cookie.Domain = "127.0.0.1";
+            //    //options.Cookie.Domain = "http://127.0.0.1:50110";
+            //});
+
+            //services.AddMvc(options => {
+            //    options.Filters.Add(new ValidateAntiForgeryTokenAttribute());
+            //}).SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+
             services.AddAutoMapper();
 
             // configure strongly typed settings objects
@@ -83,6 +98,12 @@ namespace WebApi
                 .AllowAnyOrigin()
                 .AllowAnyMethod()
                 .AllowAnyHeader());
+
+            // TODO: reconsider this
+            app.UseCookiePolicy(new CookiePolicyOptions {
+                MinimumSameSitePolicy = SameSiteMode.None,
+            });
+
 
             app.UseAuthentication();
 

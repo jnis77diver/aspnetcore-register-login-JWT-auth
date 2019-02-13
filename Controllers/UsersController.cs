@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using WebApi.Services;
 using WebApi.Dtos;
 using WebApi.Entities;
+using System.Net.Http;
+using System.Net;
 
 namespace WebApi.Controllers
 {
@@ -35,14 +37,20 @@ namespace WebApi.Controllers
         }
 
         [AllowAnonymous]
+        [IgnoreAntiforgeryToken]
         [HttpPost("authenticate")]
         public IActionResult Authenticate([FromBody]UserDto userDto)
         {
             var user = _userService.Authenticate(userDto.Username, userDto.Password);
 
             if (user == null)
-                return BadRequest(new { message = "Username or password is incorrect" });
+            {
+                //var msg = new HttpResponseMessage(HttpStatusCode.Unauthorized) { ReasonPhrase = "Username or password is incorrect" };
+                //throw new HttpResponseException(msg);
+                return Unauthorized();
+            }
 
+            // TODO: set up refresh tokens
             var tokenHandler = new JwtSecurityTokenHandler();
             var key = Encoding.ASCII.GetBytes(_appSettings.Secret);
             var tokenDescriptor = new SecurityTokenDescriptor
@@ -78,7 +86,7 @@ namespace WebApi.Controllers
             {
                 // save 
                 _userService.Create(user, userDto.Password);
-                return Ok();
+                return Ok(new { Username = user.Username, FirstName = user.FirstName, LastName = user.LastName, Id = user.Id});
             } 
             catch(AppException ex)
             {
